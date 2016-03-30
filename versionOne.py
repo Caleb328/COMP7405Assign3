@@ -28,11 +28,11 @@ def geo_asian_option(S, sigma, r, T, K, n, type):
         print "Neither CALL nor PUT option"
 
 
-#Geometric Asian basket
+#Geometric basket
 #Input S1 S2 sigma1 simga2 r T K corr type
-def geo_asian_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
+def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
     sigma = math.sqrt(sigma1*sigma1+sigma1*sigma2*corr*2+sigma2*sigma2)/2
-    mu = r-(pow(sigma1, 2)+pow(sigma2, 2))/4+pow(sigma, 2)/2
+    mu = r-(pow(sigma1, 2)+pow(sigma2, 2))/4+0.5*pow(sigma, 2)
     B = math.sqrt(S1*S2)
     d1 = d_one(B, K, T, sigma, mu)
     d2 = d_two(B, K, T, sigma, mu)
@@ -49,7 +49,6 @@ def geo_asian_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_asian)
 def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
-    start = timer()
     np.random.seed(1)
     dt = T/n
     drift = math.exp((r-0.5*pow(sigma, 2))*dt)
@@ -85,8 +84,6 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
         CIlow = p_mean-1.96*p_std/math.sqrt(path)
         CIhigh = p_mean+1.96*p_std/math.sqrt(path)
         print "Mean: %.5f, Std: %.5f, [%.5f, %.5f]" % (p_mean, p_std, CIlow, CIhigh)
-        time_one = timer() - start
-        print "Time used: %s" % time_one
     #Monte Carlo with control variates
     else:
         XY = [0.0]*path
@@ -102,11 +99,86 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
         CIlow = z_mean-1.96*z_std/math.sqrt(path)
         CIhigh = z_mean+1.96*z_std/math.sqrt(path)
         print "Mean: %.5f, Std: %.5f, [%.5f, %.5f]" % (z_mean, z_std, CIlow, CIhigh)
-        time_two = timer() - start
-        print "Time used: %s" % time_two
 
+
+#arithmetric basket
+#Input: S1 S2 sigma1 sigma r T K corr type path cv
+#path: number paths for Monte Carlo simulation
+#cv: type of control variate (null or geo_basket)
+def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
+    np.random.seed(1)
+    arith_payoff = [0.0]*path
+    geo_payoff = [0.0]*path
+    for i in range(0, path):
+        S1_T = S1*math.exp((r-0.5*pow(sigma1, 2))*T+sigma1*math.sqrt(T)*np.random.standard_normal(1)[0])
+        S2_T = S2*math.exp((r-0.5*pow(sigma2, 2))*T+sigma2*math.sqrt(T)*np.random.standard_normal(1)[0])
+        ba_T = (S1_T+S2_T)/2
+        bg_T = math.sqrt(S1_T*S2_T)
+        if type == 'C':
+            arith_payoff[i] = max(ba_T-K, 0)
+            geo_payoff[i] = max(bg_T-K, 0)
+        else:
+            arith_payoff[i] = max(K-ba_T, 0)
+            geo_payoff[i] = max(K-bg_T, 0)
+
+    print geo_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type)
+    print np.mean(geo_payoff)
+    #Standard Monte Carlo
+    if cv == 'null':
+        p_mean = np.mean(arith_payoff)
+        p_std = np.std(arith_payoff)
+        print "Mean: %.5f, Std: %.5f" % (p_mean, p_std)
+    #Monte Carlo with control variates
+    else:
+        XY = [0.0]*path
+        for i in range(0, path):
+            XY[i] = arith_payoff[i]*geo_payoff[i]
+        covXY = np.mean(XY) - np.mean(arith_payoff)*np.mean(geo_payoff)
+        theta = covXY/np.var(geo_payoff)
+
+        Z = [0.0]*path
+        for i in range(0, path):
+            Z[i] = arith_payoff[i]+theta*(np.mean(geo_payoff)-geo_payoff[i])
+
+        z_mean = np.mean(Z)
+        z_std = np.std(Z)
+        print "Mean: %.5f, Std: %.5f" % (z_mean, z_std)
+
+
+def bino_tree(S, K, r, T, sigma, N, type):
+    dt = float(T)/N
+    u = math.exp(sigma*math.sqrt(dt))
+    d = 1/u
+    p = (math.exp(r*dt)-d)/(u-d)
+    DF = math.exp(-r*dt)
+    stock = [0.0]*(N+1)
+    pay_off = [0.0]*(N+1)
+    if type == 'C':
+        for i in range(0, N+1):
+            stock[i] = S*pow(u, N-i)*pow(d, i)
+            pay_off[i] = max(S*pow(u, N-i)*pow(d, i)-K, 0)
+        for j in range(0, N):
+            for i in range(0, N-j):
+                stock_price = math.sqrt(stock[i]*stock[i+1])
+                pay_off[i] = max(stock_price-K, DF*(p*pay_off[i]+(1-p)*pay_off[i+1]))
+                stock[i] = stock_price
+        return pay_off[0]
+    else:
+        for i in range(0, N+1):
+            stock[i] = S*pow(u, N-i)*pow(d, i)
+            pay_off[i] = max(-S*pow(u, N-i)*pow(d, i)+K, 0)
+        for j in range(0, N):
+            for i in range(0, N-j):
+                stock_price = math.sqrt(stock[i]*stock[i+1])
+                pay_off[i] = max(-stock_price+K, DF*(p*pay_off[i]+(1-p)*pay_off[i+1]))
+                stock[i] = stock_price
+        return pay_off[0]
 
 if __name__ == '__main__':
     print "Hello world"
-    arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
-    arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'control_viriate')
+    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
+    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'geo_asian')
+    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'null')
+    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'geo_basket')
+    print bino_tree(50, 50, 0.05, 0.25, 0.3, 500, 'C')
+    print bino_tree(50, 52, 0.05, 2, 0.223144, 500, 'P')
