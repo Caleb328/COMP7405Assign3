@@ -6,26 +6,25 @@ from timeit import default_timer as timer
 
 #d1 and d2
 def d_one(S, K, T, sigma, mu):
-    return (math.log(S/K)+(mu+pow(sigma, 2))*T)/math.sqrt(T)*sigma
+    return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/math.sqrt(T)*sigma
 
 
 def d_two(S, K, T, sigma, mu):
-    return (math.log(S/K)+(mu+pow(sigma, 2))*T)/math.sqrt(T)*sigma-math.sqrt(T)*sigma
+    return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/math.sqrt(T)*sigma-math.sqrt(T)*sigma
 
 
 #Geometric Asian option
 #Input: S sigma r T K n type
 def geo_asian_option(S, sigma, r, T, K, n, type):
-    sigmaHat = sigma*math.sqrt((n+1)*(2*n+1)/(6*pow(n, 2)))
-    muHat = (r-pow(sigma, 2)/2)*(n+1)/(2*n) + pow(sigmaHat, 2)/2
-    d1 = d_one(S, K, T, sigmaHat, muHat)
-    d2 = d_two(S, K, T, sigmaHat, muHat)
-    if type=='C':
-        return math.exp(-r*T)*(S*math.exp(muHat*T)*norm.cdf(d1)-K*norm.cdf(d2))
-    elif type=='P':
-        return math.exp(-r*T)*(-S*math.exp(muHat*T)*norm.cdf(-d1)+K*norm.cdf(-d2))
+    N = float(n)
+    sigsqT = pow(sigma, 2)*T*(N+1)*(2*N+1)/(6*N*N)
+    muT = 0.5*sigsqT+(r-0.5*pow(sigma, 2))*T*(N+1)/(2*N)
+    d1 = (math.log(S/K)+(muT+0.5*sigsqT))/(math.sqrt(sigsqT))
+    d2 = d1 - math.sqrt(sigsqT)
+    if type == 'C':
+        return math.exp(-r*T)*(S*math.exp(muT)*norm.cdf(d1)-K*norm.cdf(d2))
     else:
-        print "Neither CALL nor PUT option"
+        return math.exp(-r*T)*(-S*math.exp(muT)*norm.cdf(-d1)+K*norm.cdf(-d2))
 
 
 #Geometric basket
@@ -49,7 +48,7 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_asian)
 def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
-    np.random.seed(1)
+    np.random.seed(0)
     dt = T/n
     drift = math.exp((r-0.5*pow(sigma, 2))*dt)
     arith_payoff = [0.0]*path
@@ -70,8 +69,7 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
             arith_payoff[i] = math.exp(-r*T)*max(-arith_mean+K, 0)
 
         #geometrick asian option
-        geo_mean = math.exp(0.01*np.sum([math.log(x) for x in s_path]))
-        # print geo_mean
+        geo_mean = math.exp(1/float(n)*np.sum([math.log(x) for x in s_path]))
         if type == 'C':
             geo_payoff[i] = math.exp(-r*T)*max(geo_mean-K, 0)
         else:
@@ -92,8 +90,9 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
         covXY = np.mean(XY) - np.mean(arith_payoff)*np.mean(geo_payoff)
         theta = covXY/np.var(geo_payoff)
         z = [0.0]*path
+        geo = geo_asian_option(S, sigma,r, T, K, n, type)
         for i in range(0, path):
-            z[i] = arith_payoff[i] + theta*(np.mean(geo_payoff) - geo_payoff[i])
+            z[i] = arith_payoff[i] + theta*(geo - geo_payoff[i])
         z_mean = np.mean(z)
         z_std = np.std(z)
         CIlow = z_mean-1.96*z_std/math.sqrt(path)
@@ -106,7 +105,7 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_basket)
 def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
-    np.random.seed(1)
+    np.random.seed(0)
     arith_payoff = [0.0]*path
     geo_payoff = [0.0]*path
     for i in range(0, path):
@@ -121,8 +120,6 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
             arith_payoff[i] = max(K-ba_T, 0)
             geo_payoff[i] = max(K-bg_T, 0)
 
-    print geo_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type)
-    print np.mean(geo_payoff)
     #Standard Monte Carlo
     if cv == 'null':
         p_mean = np.mean(arith_payoff)
@@ -137,9 +134,9 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
         theta = covXY/np.var(geo_payoff)
 
         Z = [0.0]*path
+        geo = geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
         for i in range(0, path):
-            Z[i] = arith_payoff[i]+theta*(np.mean(geo_payoff)-geo_payoff[i])
-
+            Z[i] = arith_payoff[i]+theta*(geo-geo_payoff[i])
         z_mean = np.mean(Z)
         z_std = np.std(Z)
         print "Mean: %.5f, Std: %.5f" % (z_mean, z_std)
@@ -176,9 +173,9 @@ def bino_tree(S, K, r, T, sigma, N, type):
 
 if __name__ == '__main__':
     print "Hello world"
-    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
-    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'geo_asian')
-    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'null')
-    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'geo_basket')
+    arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
+    arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'geo_asian')
+    arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'null')
+    arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'geo_basket')
     print bino_tree(50, 50, 0.05, 0.25, 0.3, 500, 'C')
     print bino_tree(50, 52, 0.05, 2, 0.223144, 500, 'P')
