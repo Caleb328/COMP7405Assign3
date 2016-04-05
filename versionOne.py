@@ -1,31 +1,37 @@
 import math
 import numpy as np
 from scipy.stats import norm
-from timeit import default_timer as timer
 
 
 #d1 and d2
 def d_one(S, K, T, sigma, mu):
-    return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/math.sqrt(T)*sigma
+    return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/(math.sqrt(T)*sigma)
 
 
 def d_two(S, K, T, sigma, mu):
-    return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/math.sqrt(T)*sigma-math.sqrt(T)*sigma
+    return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/(math.sqrt(T)*sigma)-math.sqrt(T)*sigma
 
 
 #Geometric Asian option
 #Input: S sigma r T K n type
-def geo_asian_option(S, sigma, r, T, K, n, type):
+def geo_asian_option(S, sigma, r, t, K, n, type):
     N = float(n)
-    sigsqT = pow(sigma, 2)*T*(N+1)*(2*N+1)/(6*N*N)
-    muT = 0.5*sigsqT+(r-0.5*pow(sigma, 2))*T*(N+1)/(2*N)
-    d1 = (math.log(S/K)+(muT+0.5*sigsqT))/(math.sqrt(sigsqT))
-    d2 = d1 - math.sqrt(sigsqT)
+    T = float(t)
+    # sigsqT = pow(sigma, 2)*T*(N+1)*(2*N+1)/(6*N*N)
+    # muT = 0.5*sigsqT+(r-0.5*pow(sigma, 2))*T*(N+1)/(2*N)
+    sigmaHat = sigma*math.sqrt((N+1)*(2*N+1)/(6*pow(N,2)))
+    muHat = (r-0.5*pow(sigma, 2))*(N+1)/(2*N)+0.5*pow(sigmaHat, 2)
+    # d1 = (math.log(S/K)+(muT+0.5*sigsqT))/(math.sqrt(sigsqT))
+    # d2 = d1 - math.sqrt(sigsqT)
+    d1 = d_one(S, K, T, sigmaHat, muHat)
+    d2 = d_two(S, K, T, sigmaHat, muHat)
+    print "%.5f %.5f %.5f" % (-r*T, sigmaHat, muHat)
     if type == 'C':
-        return math.exp(-r*T)*(S*math.exp(muT)*norm.cdf(d1)-K*norm.cdf(d2))
+        # return math.exp(-r*T)*(S*math.exp(muT)*norm.cdf(d1)-K*norm.cdf(d2))
+        return math.exp(-r*T)*(S*math.exp(muHat*T)*norm.cdf(d1) - K*norm.cdf(d2))
     else:
-        return math.exp(-r*T)*(-S*math.exp(muT)*norm.cdf(-d1)+K*norm.cdf(-d2))
-
+        # return math.exp(-r*T)*(-S*math.exp(muT)*norm.cdf(-d1)+K*norm.cdf(-d2))
+        return math.exp(-r * T) * (-S * math.exp(muHat * T) * norm.cdf(-d1) + K * norm.cdf(-d2))
 
 #Geometric basket
 #Input S1 S2 sigma1 simga2 r T K corr type
@@ -35,6 +41,7 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
     B = math.sqrt(S1*S2)
     d1 = d_one(B, K, T, sigma, mu)
     d2 = d_two(B, K, T, sigma, mu)
+    # print "%.5f %.5f %.5f %.5f %.5f" % (B, sigma, mu, d1, d2)
     if type == 'C':
         return math.exp(-r*T)*(B*math.exp(mu*T)*norm.cdf(d1)-K*norm.cdf(d2))
     elif type == 'P':
@@ -173,9 +180,29 @@ def bino_tree(S, K, r, T, sigma, N, type):
 
 if __name__ == '__main__':
     print "Hello world"
-    arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
-    arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'geo_asian')
-    arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'null')
-    arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'geo_basket')
-    print bino_tree(50, 50, 0.05, 0.25, 0.3, 500, 'C')
-    print bino_tree(50, 52, 0.05, 2, 0.223144, 500, 'P')
+    print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'P')
+    print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'P')
+    print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'P')
+    print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'C')
+    print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'C')
+    print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'C')
+    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
+    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'geo_asian')
+    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'null')
+    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'geo_basket')
+    # print bino_tree(50, 50, 0.05, 0.25, 0.3, 500, 'C')
+    # print bino_tree(50, 52, 0.05, 2, 0.223144, 500, 'P')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'P')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.9, 'P')
+    # geo_basket(100, 100, 0.1, 0.3, 0.05, 3, 100, 0.5, 'P')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 80, 0.5, 'P')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 120, 0.5, 'P')
+    # geo_basket(100, 100, 0.5, 0.5, 0.05, 3, 100, 0.5, 'P')
+    #
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.9, 'C')
+    # geo_basket(100, 100, 0.1, 0.3, 0.05, 3, 100, 0.5, 'C')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 80, 0.5, 'C')
+    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 120, 0.5, 'C')
+    # geo_basket(100, 100, 0.5, 0.5, 0.05, 3, 100, 0.5, 'C')
+
