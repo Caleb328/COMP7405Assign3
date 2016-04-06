@@ -17,20 +17,17 @@ def d_two(S, K, T, sigma, mu):
 def geo_asian_option(S, sigma, r, t, K, n, type):
     N = float(n)
     T = float(t)
-    # sigsqT = pow(sigma, 2)*T*(N+1)*(2*N+1)/(6*N*N)
-    # muT = 0.5*sigsqT+(r-0.5*pow(sigma, 2))*T*(N+1)/(2*N)
     sigmaHat = sigma*math.sqrt((N+1)*(2*N+1)/(6*pow(N,2)))
     muHat = (r-0.5*pow(sigma, 2))*(N+1)/(2*N)+0.5*pow(sigmaHat, 2)
-    # d1 = (math.log(S/K)+(muT+0.5*sigsqT))/(math.sqrt(sigsqT))
-    # d2 = d1 - math.sqrt(sigsqT)
+    print muHat, sigmaHat
+
     d1 = d_one(S, K, T, sigmaHat, muHat)
     d2 = d_two(S, K, T, sigmaHat, muHat)
-    print "%.5f %.5f %.5f" % (-r*T, sigmaHat, muHat)
+    print d1, d2
+
     if type == 'C':
-        # return math.exp(-r*T)*(S*math.exp(muT)*norm.cdf(d1)-K*norm.cdf(d2))
         return math.exp(-r*T)*(S*math.exp(muHat*T)*norm.cdf(d1) - K*norm.cdf(d2))
     else:
-        # return math.exp(-r*T)*(-S*math.exp(muT)*norm.cdf(-d1)+K*norm.cdf(-d2))
         return math.exp(-r * T) * (-S * math.exp(muHat * T) * norm.cdf(-d1) + K * norm.cdf(-d2))
 
 #Geometric basket
@@ -57,7 +54,7 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
     np.random.seed(0)
     dt = T/n
-    drift = math.exp((r-0.5*pow(sigma, 2))*dt)
+    drift = math.exp((r-0.5*sigma**2)*dt)
     arith_payoff = [0.0]*path
     geo_payoff = [0.0]*path
     for i in range(0, path):
@@ -68,19 +65,17 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
             growth_factor = drift * math.exp(sigma*math.sqrt(dt)*np.random.standard_normal(1)[0])
             s_path[j] = s_path[j-1]*growth_factor
 
-        #arithmetic asian option:
+        #asian option sample payoffs:
         arith_mean = np.mean(s_path)
+        geo_mean = math.exp(1/float(n)*np.sum(np.log(s_path)))
+
         if type == 'C':
             arith_payoff[i] = math.exp(-r*T)*max(arith_mean-K, 0)
-        else:
-            arith_payoff[i] = math.exp(-r*T)*max(-arith_mean+K, 0)
-
-        #geometrick asian option
-        geo_mean = math.exp(1/float(n)*np.sum([math.log(x) for x in s_path]))
-        if type == 'C':
             geo_payoff[i] = math.exp(-r*T)*max(geo_mean-K, 0)
         else:
+            arith_payoff[i] = math.exp(-r*T)*max(-arith_mean+K, 0)
             geo_payoff[i] = math.exp(-r*T)*max(-geo_mean+K, 0)
+
 
     #Standard Monte Carlo:
     if cv == 'null':
@@ -94,12 +89,11 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
         XY = [0.0]*path
         for i in range(0, path):
             XY[i] = arith_payoff[i]*geo_payoff[i]
-        covXY = np.mean(XY) - np.mean(arith_payoff)*np.mean(geo_payoff)
+        covXY = np.mean(XY) - (np.mean(arith_payoff)*np.mean(geo_payoff))
         theta = covXY/np.var(geo_payoff)
-        z = [0.0]*path
         geo = geo_asian_option(S, sigma,r, T, K, n, type)
-        for i in range(0, path):
-            z[i] = arith_payoff[i] + theta*(geo - geo_payoff[i])
+        print geo
+        z = arith_payoff + theta*(geo - geo_payoff)
         z_mean = np.mean(z)
         z_std = np.std(z)
         CIlow = z_mean-1.96*z_std/math.sqrt(path)
@@ -113,19 +107,22 @@ def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
 #cv: type of control variate (null or geo_basket)
 def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
     np.random.seed(0)
-    arith_payoff = [0.0]*path
-    geo_payoff = [0.0]*path
+    z1 = np.random.normal(loc=0, scale=1, size=path)
+    z = np.random.normal(loc=0, scale=1, size=path)
+    z2 = corr*z1+math.sqrt(1-corr**2)*z
+    S1_T = S1*np.exp((r-0.5*sigma1*sigma1)*T+sigma1*np.sqrt(T)*z1)
+    S2_T = S2*np.exp((r-0.5*sigma2*sigma2)*T+sigma2*np.sqrt(T)*z2)
+    ba_T = (S1_T+S2_T)/2
+    bg_T = np.exp((np.log(S1_T)+np.log(S2_T))/2)
+    if type == 'C':
+        arith_payoff = (ba_T-K)*math.exp(-r*T)
+        geo_payoff = (bg_T-K)*math.exp(-r*T)
+    else:
+        arith_payoff = (K-ba_T)*math.exp(-r*T)
+        geo_payoff = (K-bg_T)*math.exp(-r*T)
     for i in range(0, path):
-        S1_T = S1*math.exp((r-0.5*pow(sigma1, 2))*T+sigma1*math.sqrt(T)*np.random.standard_normal(1)[0])
-        S2_T = S2*math.exp((r-0.5*pow(sigma2, 2))*T+sigma2*math.sqrt(T)*np.random.standard_normal(1)[0])
-        ba_T = (S1_T+S2_T)/2
-        bg_T = math.sqrt(S1_T*S2_T)
-        if type == 'C':
-            arith_payoff[i] = max(ba_T-K, 0)
-            geo_payoff[i] = max(bg_T-K, 0)
-        else:
-            arith_payoff[i] = max(K-ba_T, 0)
-            geo_payoff[i] = max(K-bg_T, 0)
+        arith_payoff[i] = max(arith_payoff[i], 0)
+        geo_payoff[i] = max(geo_payoff[i], 0)
 
     #Standard Monte Carlo
     if cv == 'null':
@@ -142,6 +139,7 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
 
         Z = [0.0]*path
         geo = geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
+        # print "Geo: %.5f: Geo_sample: %.5f" % (geo, np.mean(geo_payoff))
         for i in range(0, path):
             Z[i] = arith_payoff[i]+theta*(geo-geo_payoff[i])
         z_mean = np.mean(Z)
@@ -180,16 +178,16 @@ def bino_tree(S, K, r, T, sigma, N, type):
 
 if __name__ == '__main__':
     print "Hello world"
-    print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'P')
-    print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'P')
-    print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'P')
-    print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'C')
-    print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'C')
-    print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'C')
-    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'null')
-    # arith_asian_option(10, 0.1, 0.06, 1.0, 9, 100, 'C', 10000, 'geo_asian')
-    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'null')
-    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C', 10000, 'geo_basket')
+    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'P')
+    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'P')
+    # print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'P')
+    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'C')
+    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'C')
+    # print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'C')
+    # arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 10000, 'null')
+    arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 10000, 'geo_asian')
+    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 1000000, 'null')
+    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 1000000, 'geo_basket')
     # print bino_tree(50, 50, 0.05, 0.25, 0.3, 500, 'C')
     # print bino_tree(50, 52, 0.05, 2, 0.223144, 500, 'P')
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'P')
@@ -198,11 +196,9 @@ if __name__ == '__main__':
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 80, 0.5, 'P')
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 120, 0.5, 'P')
     # geo_basket(100, 100, 0.5, 0.5, 0.05, 3, 100, 0.5, 'P')
-    #
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C')
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.9, 'C')
     # geo_basket(100, 100, 0.1, 0.3, 0.05, 3, 100, 0.5, 'C')
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 80, 0.5, 'C')
     # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 120, 0.5, 'C')
     # geo_basket(100, 100, 0.5, 0.5, 0.05, 3, 100, 0.5, 'C')
-
