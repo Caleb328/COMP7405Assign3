@@ -11,8 +11,8 @@ def mc_numpy(paths, dt, interest, volatility):
     c0 = interest - 0.5 * volatility ** 2
     c1 = volatility * np.sqrt(dt)
 
-    for j in xrange(1, paths.shape[1]):   # for each time step
-        prices = paths[:, j - 1]          # last prices
+    for j in xrange(1, paths.shape[1]):
+        prices = paths[:, j - 1]
         # gaussian noises for simulation
         noises = np.random.normal(0., 1., prices.size)
         # simulate
