@@ -139,12 +139,14 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
 
     #initialize first step result
     # random = np.random.standard_normal(path)
+    # paths[:, 0] = browianMotion(S, dt, c1, c2, random)
     paths[:, 0] = browianMotion(S, dt, c1, c2, random[:, 0])
 
     #simulate the remaining steps in monte carlo
     for i in range(1, step):
         s = paths[:, i - 1]
         # random = np.random.standard_normal(path)
+        # paths[:, i] = browianMotion(s, dt, c1, c2, random)
         paths[:, i] = browianMotion(s, dt, c1, c2, random[:, i])
 
     arithMean = paths.mean(1)
@@ -202,7 +204,7 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
     if cv == 'null':
         p_mean = np.mean(arith_payoff)
         p_std = np.std(arith_payoff)
-        print "Mean: %.5f, Std: %.5f" % (p_mean, p_std)
+        return p_mean
     #Monte Carlo with control variates
     else:
         XY = [0.0]*path
@@ -218,8 +220,7 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
             Z[i] = arith_payoff[i]+theta*(geo-geo_payoff[i])
         z_mean = np.mean(Z)
         z_std = np.std(Z)
-        print "Mean: %.5f, Std: %.5f" % (z_mean, z_std)
-
+        return z_mean
 
 def bino_tree(S, K, r, T, sigma, N, type):
     dt = float(T)/N
@@ -249,3 +250,15 @@ def bino_tree(S, K, r, T, sigma, N, type):
                 pay_off[i] = max(-stock_price+K, DF*(p*pay_off[i]+(1-p)*pay_off[i+1]))
                 stock[i] = stock_price
         return pay_off[0]
+
+if __name__ == '__main__':
+    #S, sigma, r, t, K, n, type
+    # print geo_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'C')
+    #S1, S2, sigma1, sigma2, r, T, K ,corr, type
+    # print geo_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C')
+    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 100000, 'NULL')
+    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 100000, 'CV')
+    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'P', 100000, 'NULL')
+    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'P', 100000, 'CV')
+    print arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 2000000, 'NULL')
+    print arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 2000000, 'CV')
