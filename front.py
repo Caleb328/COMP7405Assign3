@@ -110,8 +110,16 @@ class Application1(Frame):
 
         self.param42lbl = Label(content, text='option type P/C')
         self.param42lbl.grid(column=2, row=4, columnspan=1)
-        self.param42 = Entry(content)
-        self.param42.grid(column=3, row=4, columnspan=1)
+        # self.param42 = Entry(content)
+        # self.param42.grid(column=3, row=4, columnspan=1)
+        self.optionType = StringVar()
+        typeBtn1 = Radiobutton(content, text="call", variable=self.optionType, value="C")
+        typeBtn2 = Radiobutton(content, text="put", variable=self.optionType, value="P")
+        typeBtn1.grid(column=3, row=4, sticky=W)
+        typeBtn2.grid(column=3, row=4, sticky=E)
+        typeBtn1.invoke()
+
+
 
         self.param51lbl = Label(content, text='correlation p')
         self.param51lbl.grid(column=0, row=5, columnspan=1)
@@ -161,7 +169,7 @@ class Application1(Frame):
         self.resultContent['text'] = v
 
     def calculate(self):
-        print self.questionValue
+        # Get Parameters
         selection = self.questionValue.get()
         s1 = self.param11.get()
         s2 = self.param12.get()
@@ -170,7 +178,8 @@ class Application1(Frame):
         r = self.param31.get()
         t = self.param32.get()
         K = self.param41.get()
-        type = self.param42.get()
+        # type = self.param42.get()
+        type = self.optionType.get()
         corr = self.param51.get()
         n = self.param61.get()
         path = self.param71.get()
