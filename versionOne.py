@@ -2,6 +2,81 @@ import math
 import numpy as np
 from scipy.stats import norm
 
+#d1 calculator with repo
+def dOne(stock, strike, time, maturity, volatility, repo, rfr):
+    return (math.log(stock / strike) + (rfr - repo) * (maturity - time)) / (volatility * math.sqrt(maturity - time)) + volatility * math.sqrt(maturity - time) / 2
+
+#d2 calculator with repo
+def dTwo(stock, strike, time, maturity, volatility, repo, rfr):
+    return (math.log(stock / strike) + (rfr - repo) * (maturity - time)) / (volatility * math.sqrt(maturity - time)) - volatility * math.sqrt(maturity - time) / 2
+
+#black scholes function for call option
+def call_black_scholes(stock, strike, time, maturity, volatility, repo, rfr):
+    return stock * math.exp((0 - repo) * (maturity - time)) * norm.cdf(dOne(stock, strike, time, maturity, volatility, repo, rfr)) - strike * math.exp((0 - rfr) * (maturity - time)) * norm.cdf(dTwo(stock, strike, time, maturity, volatility, repo, rfr))
+
+#black scholes function for put option
+def put_black_scholes(stock, strike, time, maturity, volatility, repo, rfr):
+    return strike * math.exp(-rfr * (maturity - time)) * norm.cdf(-dTwo(stock, strike, time, maturity, volatility, repo, rfr)) - stock * math.exp(-repo * (maturity - time)) * norm.cdf(-dOne(stock, strike, time, maturity, volatility, repo, rfr))
+
+#Initiate guess of sigma in newton method
+def initial_guess(S, K, t, T, q, r):
+    return math.sqrt(2 * abs( (math.log(S / K) + (r - q) * (T - t)) / (T - t)))
+
+#Implied volatility calculator for call option
+def implied_vol_C(S, K, t, T, q, r, cTrue):
+    tol = 1e-8
+    sigma = initial_guess(S, K, t, T, q, r)
+    sigmaDiff = 1.0
+    n = 1
+    nMax = 1000
+    while sigmaDiff >= tol and n < nMax :
+        #f(xn)
+        c = call_black_scholes(S, K, t, T, sigma, q, r)
+        fn = c - cTrue
+        #f'(xn)
+        fn1 = S * math.exp((0 - q) * (T - t)) * math.sqrt(T - t) * norm._cdf(dOne(S,K,t,T,sigma, q, r))
+        increment = fn / fn1 * 0.1
+        sigma = sigma - increment
+        n += 1
+        sigmaDiff = abs(increment)
+    return sigma
+
+#Implied volatility calculator for put option
+def implied_vol_P(S, K, t, T, q, r, pTrue):
+    tol = 1e-8
+    sigmaHat = initial_guess(S, K, t, T, q, r)
+    sigmaA, sigmaB = sigmaHat, sigmaHat
+    sigmaDiff = 1.0
+    n = 1
+    nMax = 1000
+    while sigmaDiff >= tol and n < nMax:
+        if n==1:
+            p = put_black_scholes(S, K, t, T, sigmaHat, q, r)
+        else:
+            p = put_black_scholes(S, K, t, T, sigmaB, q, r)
+        fn = p-pTrue
+        fn1 = S*math.exp((0-q)*(T-t))*math.sqrt(T-t)*norm._cdf(dOne(S,K,t,T,sigmaB, q, r))
+        if fn1 == 0:
+            return 0.0
+        increment = fn/fn1 * 0.1
+        if fn>0:
+            sigmaA = sigmaB
+            sigmaB = sigmaB-increment
+        else:
+            sigmaMid = (sigmaA+sigmaB)/2
+            while sigmaA-sigmaB > tol:
+                sigmaMid = (sigmaA+sigmaB)/2
+                if put_black_scholes(S, K, t, T, sigmaMid, q, r)-pTrue == 0:
+                    return sigmaMid
+                elif (put_black_scholes(S, K, t, T, sigmaMid, q, r)-pTrue)*(put_black_scholes(S, K, t, T, sigmaB, q, r)-pTrue)<0:
+                    sigmaA = sigmaMid
+                else:
+                    sigmaB = sigmaMid
+            return abs(sigmaMid)
+        n += 1
+        sigmaDiff = abs(increment)
+    return sigmaB
+
 #d1 and d2
 def d_one(S, K, T, sigma, mu):
     return (math.log(S/K)+(mu+0.5*pow(sigma, 2))*T)/(math.sqrt(T)*sigma)
@@ -30,7 +105,7 @@ def geo_asian_option(S, sigma, r, t, K, n, type):
 #Geometric basket
 #Input S1 S2 sigma1 simga2 r T K corr type
 def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
-    sigma = math.sqrt(sigma1*sigma1+sigma1*sigma2*corr*2+sigma2*sigma2)/2
+    sigma = math.sqrt(sigma1 ** 2 + sigma1 * sigma2 * corr * 2 + sigma2 ** 2) / 2
     mu = r-(pow(sigma1, 2)+pow(sigma2, 2))/4+0.5*pow(sigma, 2)
     B = math.sqrt(S1*S2)
     d1 = d_one(B, K, T, sigma, mu)
@@ -48,53 +123,56 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 #Input: S sigma r T K n type path cv
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_asian)
-def arith_asian_option(S, sigma, r, T, K, n, type, path, cv):
+def browianMotion(S, dt, c1, c2, random):
+    return S * np.exp(c1 * dt + c2 * random)
+
+
+def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
     np.random.seed(0)
-    dt = T/n
-    drift = math.exp((r-0.5*sigma**2)*dt)
-    arith_payoff = [0.0]*path
-    geo_payoff = [0.0]*path
+    paths = np.zeros((path, step), order='F')
+    random = np.zeros((path, step), order='F')
     for i in range(0, path):
-        s_path = [0.0]*n
-        growth_factor = drift * math.exp(sigma*math.sqrt(dt)*np.random.standard_normal(1)[0])
-        s_path[0] = S*growth_factor
-        for j in range(1, n):
-            growth_factor = drift * math.exp(sigma*math.sqrt(dt)*np.random.standard_normal(1)[0])
-            s_path[j] = s_path[j-1]*growth_factor
+        random[i, :] = np.random.standard_normal(step)
+    c1 = r - 0.5 * sigma ** 2
+    dt = float(T) / step
+    c2 = sigma * np.sqrt(dt)
 
-        #asian option sample payoffs:
-        arith_mean = np.mean(s_path)
-        geo_mean = math.exp(1/float(n)*np.sum(np.log(s_path)))
+    #initialize first step result
+    # random = np.random.standard_normal(path)
+    paths[:, 0] = browianMotion(S, dt, c1, c2, random[:, 0])
 
-        if type == 'C':
-            arith_payoff[i] = math.exp(-r*T)*max(arith_mean-K, 0)
-            geo_payoff[i] = math.exp(-r*T)*max(geo_mean-K, 0)
-        else:
-            arith_payoff[i] = math.exp(-r*T)*max(-arith_mean+K, 0)
-            geo_payoff[i] = math.exp(-r*T)*max(-geo_mean+K, 0)
+    #simulate the remaining steps in monte carlo
+    for i in range(1, step):
+        s = paths[:, i - 1]
+        # random = np.random.standard_normal(path)
+        paths[:, i] = browianMotion(s, dt, c1, c2, random[:, i])
 
-    #Standard Monte Carlo:
-    if cv == 'null':
-        p_mean = np.mean(arith_payoff)
-        p_std = np.std(arith_payoff)
-        CIlow = p_mean-1.96*p_std/math.sqrt(path)
-        CIhigh = p_mean+1.96*p_std/math.sqrt(path)
-        print "Mean: %.5f, Std: %.5f, [%.5f, %.5f]" % (p_mean, p_std, CIlow, CIhigh)
-    #Monte Carlo with control variates
+    arithMean = paths.mean(1)
+    logPaths = np.log(paths)
+    geoMean = np.exp(1 / float(step) * logPaths.sum(1))
+
+    if type == 'C':
+        arith_payoff = np.maximum(arithMean - K, 0)*np.exp(-r*T)
+        geo_payoff = np.maximum(geoMean - K, 0)*np.exp(-r*T)
+    elif type == 'P':
+        arith_payoff = np.maximum(K - arithMean, 0)*np.exp(-r*T)
+        geo_payoff = np.maximum(K - geoMean, 0)*np.exp(-r*T)
     else:
-        XY = [0.0]*path
-        for i in range(0, path):
-            XY[i] = arith_payoff[i]*geo_payoff[i]
-        covXY = np.mean(XY) - (np.mean(arith_payoff)*np.mean(geo_payoff))
+        return 404
+
+    #Standard Monte Carlo
+    if cv == 'NULL':
+        return np.mean(arith_payoff)
+
+    #Control variates
+    else:
+        XY = arith_payoff*geo_payoff
+        covXY = np.mean(XY) - (np.mean(geo_payoff) * np.mean(arith_payoff))
         theta = covXY/np.var(geo_payoff)
-        geo = geo_asian_option(S, sigma,r, T, K, n, type)
-        z = arith_payoff + theta*(geo - geo_payoff)
+        geo = geo_asian_option(S, sigma,r, T, K, step, type)
         # print np.mean(geo - geo_payoff)
-        z_mean = np.mean(z)
-        z_std = np.std(z)
-        CIlow = z_mean-1.96*z_std/math.sqrt(path)
-        CIhigh = z_mean+1.96*z_std/math.sqrt(path)
-        print "Mean: %.5f, Std: %.5f, [%.5f, %.5f]" % (z_mean, z_std, CIlow, CIhigh)
+        z = arith_payoff + theta*(geo - geo_payoff)
+        return np.mean(z)
 
 
 #arithmetric basket
@@ -171,30 +249,3 @@ def bino_tree(S, K, r, T, sigma, N, type):
                 pay_off[i] = max(-stock_price+K, DF*(p*pay_off[i]+(1-p)*pay_off[i+1]))
                 stock[i] = stock_price
         return pay_off[0]
-
-if __name__ == '__main__':
-    print "Hello world"
-    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'P')
-    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'P')
-    # print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'P')
-    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 50, 'C')
-    # print geo_asian_option(100, 0.3, 0.05, 3, 100, 100, 'C')
-    # print geo_asian_option(100, 0.4, 0.05, 3, 100, 50, 'C')
-    arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 100000, 'null')
-    arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 100000, 'geo_asian')
-    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 1000000, 'null')
-    # arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 1000000, 'geo_basket')
-    # print bino_tree(50, 50, 0.05, 0.25, 0.3, 500, 'C')
-    # print bino_tree(50, 52, 0.05, 2, 0.223144, 500, 'P')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'P')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.9, 'P')
-    # geo_basket(100, 100, 0.1, 0.3, 0.05, 3, 100, 0.5, 'P')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 80, 0.5, 'P')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 120, 0.5, 'P')
-    # geo_basket(100, 100, 0.5, 0.5, 0.05, 3, 100, 0.5, 'P')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.5, 'C')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 100, 0.9, 'C')
-    # geo_basket(100, 100, 0.1, 0.3, 0.05, 3, 100, 0.5, 'C')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 80, 0.5, 'C')
-    # geo_basket(100, 100, 0.3, 0.3, 0.05, 3, 120, 0.5, 'C')
-    # geo_basket(100, 100, 0.5, 0.5, 0.05, 3, 100, 0.5, 'C')

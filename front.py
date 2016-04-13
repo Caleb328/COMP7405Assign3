@@ -1,5 +1,5 @@
 from Tkinter import  *
-import  versionOne as optFunc
+import versionOne as optFunc
 
 class Application(Frame):
 
@@ -171,50 +171,65 @@ class Application1(Frame):
     def calculate(self):
         # Get Parameters
         selection = self.questionValue.get()
-        s1 = self.param11.get()
-        s2 = self.param12.get()
-        sigma1 = self.param21.get()
-        sigma2 = self.param22.get()
-        r = self.param31.get()
-        t = self.param32.get()
-        K = self.param41.get()
-        # type = self.param42.get()
+        S1 = float(self.param11.get())
+        S2 = float(self.param12.get())
+        sigma1 = float(self.param21.get())
+        sigma2 = float(self.param22.get())
+        r = float(self.param31.get())
+        T = float(self.param32.get())
+        K = float(self.param41.get())
         type = self.optionType.get()
-        corr = self.param51.get()
-        n = self.param61.get()
-        path = self.param71.get()
+        corr = float(self.param51.get())
+        n = int(self.param61.get())
+        path = int(self.param71.get())
         cv = self.param72.get()
+
+        # TODO: repo rate
+        repo = 0.3
+        trueValue = 10.0
+
         print 'TO DO-------execute calculation'
         resultPrice = 0.0000
         if selection == 'Q1':
-
-            print "TO DO-----qusetion", selection
+            if type == "C":
+                #stock, strike, time, maturity, volatility, repo, rfr
+                return optFunc.call_black_scholes(S1, K, 0.0, T, sigma1, repo, r)
+            elif type == "P":
+                return optFunc.put_black_scholes(S1, K, 0.0, T, sigma1, repo, r)
+            else:
+                return 0.0
             # Q1
         elif selection == 'Q2':
-
-            print "TO DO-----qusetion", selection
+            if type == 'C':
+                #S, K, t, T, q, r, pTrue
+                return optFunc.implied_vol_C(S1, K, 0.0, T, repo, r, trueValue)
+            elif type == 'P':
+                return optFunc.implied_vol_P(S1, K, 0.0, T, repo, r, trueValue)
+            else:
+                return 0.0
             # Q2
         elif selection == 'Q3':
-
-            print 'TO DO-----question' % selection
+            #S, K, r, T, sigma, N, type
+            return optFunc.bino_tree(S1, K, r, T, sigma1, n, type)
+            # Q3
         elif selection == 'Q4':
-
-            print "TO DO-----qusetion", selection
+            #S, sigma, r, t, K, n, type
+            return optFunc.geo_asian_option(S1, sigma1, r, 0.0, K, n, type)
             # Q4
         elif selection == 'Q5':
-
-            print "TO DO-----qusetion", selection
+            #S, sigma, r, T, K, step, type, path, cv
+            resultPrice = optFunc.arith_asian_option(S1, sigma1, r, T, K, n, type, path, cv)
             # Q5
         elif selection == 'Q6':
-
-            print "TO DO-----qusetion", selection
+            #S1, S2, sigma1, sigma2, r, T, K ,corr, type
+            return optFunc.geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
             # Q6
         elif selection == 'Q7':
-
-            print "TO DO-----qusetion", selection
+            #S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv
+            return optFunc.arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv)
             # Q7
-        # s =
-        self.showResult(resultPrice)
+        self.resultContent['text'] = "%.5f" % resultPrice
+
 
     def selected(self):
         selection = self.questionValue.get()
