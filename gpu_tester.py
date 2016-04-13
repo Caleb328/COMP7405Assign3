@@ -2,17 +2,19 @@ import numpy as np                         # numpy namespace
 from timeit import default_timer as timer  # for timing
 # from numbapro import vectorize
 
+np.random.seed(0)
+
 # @vectorize(['f8(f8, f8, f8, f8, f8)'], target='gpu')
 def step_numpy(dt, prices, c0, c1, noises):
     return prices * np.exp(c0 * dt + c1 * noises)
 
 def mc_numpy(paths, dt, interest, volatility):
-    np.random.seed(0)
+    # np.random.seed(0)
     c0 = interest - 0.5 * volatility ** 2
     c1 = volatility * np.sqrt(dt)
 
-    for j in xrange(1, paths.shape[1]):   # for each time step
-        prices = paths[:, j - 1]          # last prices
+    for j in xrange(1, paths.shape[1]):
+        prices = paths[:, j - 1]
         # gaussian noises for simulation
         noises = np.random.normal(0., 1., prices.size)
         # simulate
@@ -26,11 +28,12 @@ InterestRate = 0.05
 Maturity = 3.0
 
 # monte-carlo parameter
-NumPath = 3000000
+NumPath = 100000
 NumStep = 50
 
 
 def driver(pricer):
+    # np.random.seed(0)
     paths = np.zeros((NumPath, NumStep), order='F')
     c0 = InterestRate - 0.5 * Volatility ** 2
     c1 = Volatility * np.sqrt(Maturity / NumStep)
@@ -41,6 +44,8 @@ def driver(pricer):
     pricer(paths, DT, InterestRate, Volatility)
     te = timer()
     elapsed = te - ts
+
+    print c0, c1
 
     payoff = paths.mean(1)
     PaidOff = np.maximum(StrikePrice - payoff, 0)
