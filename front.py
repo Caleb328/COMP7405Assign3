@@ -58,7 +58,7 @@ class Application1(Frame):
         self.cvType = StringVar()
         self.param72cvBtn1 = Radiobutton(content, text="Standard", variable=self.cvType, value="NULL")
         self.param72cvBtn2 = Radiobutton(content, text="Control Variate", variable=self.cvType, value="CV")
-        self.param72 = Entry(content)
+        # self.param72 = Entry(content)
         self.param81lbl = Label(content, text='Repo rate')
         self.param81 = Entry(content)
         self.param82lbl = Label(content, text='Option premium')
@@ -154,7 +154,7 @@ class Application1(Frame):
         elif selection == 'Q5':
             n = int(self.param61.get())
             path = int(self.param71.get())
-            cv = self.param72.get()
+            cv = self.cvType.get()
             #S, sigma, r, T, K, step, type, path, cv
             resultPrice = optFunc.arith_asian_option(S1, sigma1, r, T, K, n, type, path, cv)
             # Q5
@@ -170,7 +170,7 @@ class Application1(Frame):
             sigma2 = float(self.param22.get())
             corr = float(self.param51.get())
             path = int(self.param71.get())
-            cv = self.param72.get()
+            cv = self.cvType.get()
             #S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv
             return optFunc.arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv)
             # Q7
@@ -196,7 +196,6 @@ class Application1(Frame):
             self.param71lbl.grid_forget()
             self.param71.grid_forget()
             self.param72lbl.grid_forget()
-            self.param72.grid_forget()
             self.param72cvBtn1.grid_forget()
             self.param72cvBtn2.grid_forget()
             self.param81lbl.grid_forget()
@@ -219,7 +218,6 @@ class Application1(Frame):
             self.param71lbl.grid_forget()
             self.param71.grid_forget()
             self.param72lbl.grid_forget()
-            self.param72.grid_forget()
             self.param72cvBtn1.grid_forget()
             self.param72cvBtn2.grid_forget()
             # Q2
@@ -236,7 +234,6 @@ class Application1(Frame):
             self.param71lbl.grid_forget()
             self.param71.grid_forget()
             self.param72lbl.grid_forget()
-            self.param72.grid_forget()
             self.param72cvBtn1.grid_forget()
             self.param72cvBtn2.grid_forget()
             self.param81lbl.grid_forget()
@@ -257,7 +254,6 @@ class Application1(Frame):
             self.param71lbl.grid_forget()
             self.param71.grid_forget()
             self.param72lbl.grid_forget()
-            self.param72.grid_forget()
             self.param72cvBtn1.grid_forget()
             self.param72cvBtn2.grid_forget()
             self.param81lbl.grid_forget()
@@ -301,7 +297,6 @@ class Application1(Frame):
             self.param71lbl.grid_forget()
             self.param71.grid_forget()
             self.param72lbl.grid_forget()
-            self.param72.grid_forget()
             self.param72cvBtn1.grid_forget()
             self.param72cvBtn2.grid_forget()
             self.param81lbl.grid_forget()
@@ -323,7 +318,6 @@ class Application1(Frame):
             # self.param71lbl.grid_forget()
             # self.param71.grid_forget()
             # self.param72lbl.grid_forget()
-            # self.param72.grid_forget()
             # self.param72cvBtn1.grid_forget()
             # self.param72cvBtn2.grid_forget()
             self.param81lbl.grid_forget()
