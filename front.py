@@ -179,7 +179,8 @@ class Application1(Frame):
             #-------------------------------
             # show result in result box
             self.resultContent['text'] = "%.5f" % resultPrice
-        except:
+        except ValueError as e:
+            print e
             tkMessageBox.showinfo("Please check your parameters", "Please check and input all parameters")
 
     # stock, strike, time, maturity, volatility, repo, rfr
@@ -385,6 +386,7 @@ class Application1(Frame):
 
 
 root = Tk()
+root.title('COMP7405 Assign3 , made by WangPW,XuLX,GeXM')
 app = Application1(master=root)
 app.mainloop()
 root.destroy()
