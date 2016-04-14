@@ -2,6 +2,13 @@ from Tkinter import  *
 import versionOne as optFunc
 import tkMessageBox
 
+# import six
+# import packaging
+# import packaging.version
+# import packaging.specifiers
+# import packaging.requirements
+
+
 class Application1(Frame):
 
     def createWidgets(self):
@@ -93,9 +100,6 @@ class Application1(Frame):
         calcBtn.grid(column=0, row=13, columnspan=2, pady=10)
         quitBtn.grid(column=4, row=13, columnspan=1, pady=10)
 
-    def showResult(self,v):
-        print 'result is %s' % v
-        self.resultContent['text'] = v
 
     def calculate(self):
         try:
@@ -392,77 +396,3 @@ app.mainloop()
 root.destroy()
 
 
-
-"""
-
-        selection = self.questionValue.get()
-        S1 = float(self.param11.get())
-        S2 = float(self.param12.get())
-        sigma1 = float(self.param21.get())
-        sigma2 = float(self.param22.get())
-        r = float(self.param31.get())
-        T = float(self.param32.get())
-        K = float(self.param41.get())
-        type = self.optionType.get()
-        corr = float(self.param51.get())
-        n = int(self.param61.get())
-        path = int(self.param71.get())
-        cv = self.param72.get()
-        repo = float(self.param81.get())
-        trueValue = float(self.param82.get())
-
-
-
-            self.param12lbl.grid_forget()
-            self.param12.grid_forget()
-            self.param22lbl.grid_forget()
-            self.param22.grid_forget()
-
-            # self.param11lbl = Label(content, text='spot price of asset S1')
-            self.param11lbl.grid(column=0, row=1)
-            self.param11.grid(column=1, row=1, columnspan=1)
-
-            # self.param12lbl = Label(content, text='spot price of asset S2')
-            self.param12lbl.grid(column=2, row=1)
-            self.param12.grid(column=3, row=1, columnspan=1)
-
-            # self.param21lbl = Label(content, text='volatility of asset S1')
-            self.param21lbl.grid(column=0, row=2, columnspan=1)
-            self.param21.grid(column=1, row=2, columnspan=1)
-
-            # self.param22lbl = Label(content, text='volatility of asset S2')
-            self.param22lbl.grid(column=2, row=2, columnspan=1)
-            self.param22.grid(column=3, row=2, columnspan=1)
-
-            # self.param31lbl = Label(content, text='risk-free interest rate r')
-            self.param31lbl.grid(column=0, row=3, columnspan=1)
-            self.param31.grid(column=1, row=3, columnspan=1)
-
-            # self.param32lbl = Label(content, text='time to maturity(in years) T')
-            self.param32lbl.grid(column=2, row=3, columnspan=1)
-            self.param32.grid(column=3, row=3, columnspan=1)
-
-            # self.param41lbl = Label(content, text='strike price K')
-            self.param41lbl.grid(column=0, row=4, columnspan=1)
-            self.param41.grid(column=1, row=4, columnspan=1)
-
-            # self.param42lbl = Label(content, text='option type P/C')
-            self.param42lbl.grid(column=2, row=4, columnspan=1)
-            self.param42.grid(column=3, row=4, columnspan=1)
-
-            # self.param51lbl = Label(content, text='correlation p')
-            self.param51lbl.grid(column=0, row=5, columnspan=1)
-            self.param51.grid(column=1, row=5, columnspan=1)
-
-            # self.param61lbl = Label(content, text='no. of steps N')
-            self.param61lbl.grid(column=0, row=6, columnspan=1)
-            self.param61.grid(column=1, row=6, columnspan=1)
-
-            # self.param71lbl = Label(content, text='PATH')
-            self.param71lbl.grid(column=0, row=7, columnspan=1)
-            self.param71.grid(column=1, row=7, columnspan=1)
-
-            # self.param72lbl = Label(content, text='CV')
-            self.param72lbl.grid(column=2, row=7, columnspan=1)
-            self.param72.grid(column=3, row=7, columnspan=1)
-"""

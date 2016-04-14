@@ -125,9 +125,11 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 #Input: S sigma r T K n type path cv
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_asian)
-@vectorize(['f8(f8, f8, f8, f8, f8)'], target='gpu')
+# @vectorize(['f8(f8, f8, f8, f8, f8)'], target='gpu')
+# def browianMotion(S, dt, c1, c2, random):
+#     return S * math.exp(c1 * dt + c2 * random)
 def browianMotion(S, dt, c1, c2, random):
-    return S * math.exp(c1 * dt + c2 * random)
+    return S * np.exp(c1 * dt + c2 * random)
 
 
 def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
