@@ -131,8 +131,8 @@ def browianMotion(S, dt, c1, c2, random):
 
 def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
     np.random.seed(0)
-    paths = np.zeros((path, step), order='F')
-    random = np.zeros((path, step), order='F')
+    paths = np.zeros((path, step), order='F', dtype=np.float64)
+    random = np.zeros((path, step), order='F', dtype=np.float64)
     for i in range(0, path):
         random[i, :] = np.random.standard_normal(step)
     c1 = r - 0.5 * sigma ** 2
@@ -167,7 +167,7 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
     #Standard Monte Carlo
     if cv == 'NULL':
         # print "NULL"
-        return np.mean(arith_payoff)
+        return np.mean(arith_payoff, dtype=np.float64)
 
     #Control variates
     else:
@@ -178,7 +178,7 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
         geo = geo_asian_option(S, sigma,r, T, K, step, type)
         # print np.mean(geo - geo_payoff)
         z = arith_payoff + theta*(geo - geo_payoff)
-        return np.mean(z)
+        return np.mean(z, dtype=np.float64)
 
 
 #arithmetric basket
@@ -186,13 +186,12 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_basket)
 def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
-    print "arith basket"
     np.random.seed(0)
-    z1 = np.random.normal(loc=0, scale=1, size=path)
-    z = np.random.normal(loc=0, scale=1, size=path)
+    z1 = np.random.standard_normal(path)
+    z = np.random.standard_normal(path)
     z2 = corr*z1+math.sqrt(1-corr**2)*z
-    S1_T = S1*np.exp((r-0.5*sigma1*sigma1)*T+sigma1*np.sqrt(T)*z1)
-    S2_T = S2*np.exp((r-0.5*sigma2*sigma2)*T+sigma2*np.sqrt(T)*z2)
+    S1_T = S1*np.exp((r-0.5*sigma1**2)*T+sigma1*np.sqrt(T)*z1)
+    S2_T = S2*np.exp((r-0.5*sigma2**2)*T+sigma2*np.sqrt(T)*z2)
     ba_T = (S1_T+S2_T)/2
     bg_T = np.exp((np.log(S1_T)+np.log(S2_T))/2)
     if type == 'C':
@@ -218,11 +217,12 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
         covXY = np.mean(XY) - np.mean(arith_payoff)*np.mean(geo_payoff)
         theta = covXY/np.var(geo_payoff)
 
-        Z = [0.0]*path
+        # Z = [0.0]*path
         geo = geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
         # print "Geo: %.5f: Geo_sample: %.5f" % (geo, np.mean(geo_payoff))
-        for i in range(0, path):
-            Z[i] = arith_payoff[i]+theta*(geo-geo_payoff[i])
+        # for i in range(0, path):
+        #     Z[i] = arith_payoff[i]+theta*(geo-geo_payoff[i])
+        Z = arith_payoff + theta * (geo - geo_payoff)
         z_mean = np.mean(Z)
         z_std = np.std(Z)
         return z_mean
