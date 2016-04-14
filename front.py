@@ -1,5 +1,6 @@
 from Tkinter import  *
 import versionOne as optFunc
+import tkMessageBox
 
 class Application1(Frame):
 
@@ -97,86 +98,89 @@ class Application1(Frame):
         self.resultContent['text'] = v
 
     def calculate(self):
-        # Get Parameters
-        selection = self.questionValue.get()
-        S1 = float(self.param11.get())
-        # S2 = float(self.param12.get())
-        sigma1 = float(self.param21.get())
-        # sigma2 = float(self.param22.get())
-        T = float(self.param31.get())
-        r = float(self.param32.get())
-        K = float(self.param41.get())
-        type = self.optionType.get()
-        # corr = float(self.param51.get())
-        # n = int(self.param61.get())
-        # path = int(self.param71.get())
-        # cv = self.param72.get()
-        # repo = float(self.param81.get())
-        # trueValue = float(self.param82.get())
-        # TODO: repo rate
-        # repo = 0.3
-        # trueValue = 10.0
-
-        print 'TO DO-------execute calculation'
-        resultPrice = 0.0000
-        if selection == 'Q1':
+        try:
+            # Get Parameters
+            selection = self.questionValue.get()
+            S1 = float(self.param11.get())
+            # S2 = float(self.param12.get())
+            sigma1 = float(self.param21.get())
+            # sigma2 = float(self.param22.get())
+            T = float(self.param31.get())
+            r = float(self.param32.get())
+            K = float(self.param41.get())
+            type = self.optionType.get()
+            # corr = float(self.param51.get())
+            # n = int(self.param61.get())
+            # path = int(self.param71.get())
+            # cv = self.param72.get()
             # repo = float(self.param81.get())
-            repo = 0.0
-            if type == "C":
-                #stock, strike, time, maturity, volatility, repo, rfr
-                resultPrice = optFunc.call_black_scholes(S1, K, 0.0, T, sigma1, repo, r)
-            elif type == "P":
-                resultPrice = optFunc.put_black_scholes(S1, K, 0.0, T, sigma1, repo, r)
-            else:
-                resultPrice = 0.0
-            # Q1
-        elif selection == 'Q2':
-            repo = float(self.param81.get())
-            trueValue = float(self.param82.get())
-            if type == 'C':
-                #S, K, t, T, q, r, pTrue
-                resultPrice = optFunc.implied_vol_C(S1, K, 0.0, T, repo, r, trueValue)
-            elif type == 'P':
-                resultPrice = optFunc.implied_vol_P(S1, K, 0.0, T, repo, r, trueValue)
-            else:
-                resultPrice = 0.0
-            # Q2
-        elif selection == 'Q3':
-            n = int(self.param61.get())
-            #S, K, r, T, sigma, N, type
-            resultPrice =  optFunc.bino_tree(S1, K, r, T, sigma1, n, type)
-            # Q3
-        elif selection == 'Q4':
-            n = int(self.param61.get())
-            #S, sigma, r, t, K, n, type
-            resultPrice = optFunc.geo_asian_option(S1, sigma1, r, T, K, n, type)
-            # Q4
-        elif selection == 'Q5':
-            n = int(self.param61.get())
-            path = int(self.param71.get())
-            cv = self.cvType.get()
-            #S, sigma, r, T, K, step, type, path, cv
-            resultPrice = optFunc.arith_asian_option(S1, sigma1, r, T, K, n, type, path, cv)
-            # Q5
-        elif selection == 'Q6':
-            S2 = float(self.param12.get())
-            sigma2 = float(self.param22.get())
-            corr = float(self.param51.get())
-            #S1, S2, sigma1, sigma2, r, T, K ,corr, type
-            resultPrice = optFunc.geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
-            # Q6
-        elif selection == 'Q7':
-            S2 = float(self.param12.get())
-            sigma2 = float(self.param22.get())
-            corr = float(self.param51.get())
-            path = int(self.param71.get())
-            cv = self.cvType.get()
-            #S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv
-            resultPrice = optFunc.arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv)
-            # Q7
-        #-------------------------------
-        # show result in result box
-        self.resultContent['text'] = "%.5f" % resultPrice
+            # trueValue = float(self.param82.get())
+            # TODO: repo rate
+            # repo = 0.3
+            # trueValue = 10.0
+
+            print 'TO DO-------execute calculation'
+            resultPrice = 0.0000
+            if selection == 'Q1':
+                # repo = float(self.param81.get())
+                repo = 0.0
+                if type == "C":
+                    #stock, strike, time, maturity, volatility, repo, rfr
+                    resultPrice = optFunc.call_black_scholes(S1, K, 0.0, T, sigma1, repo, r)
+                elif type == "P":
+                    resultPrice = optFunc.put_black_scholes(S1, K, 0.0, T, sigma1, repo, r)
+                else:
+                    resultPrice = 0.0
+                # Q1
+            elif selection == 'Q2':
+                repo = float(self.param81.get())
+                trueValue = float(self.param82.get())
+                if type == 'C':
+                    #S, K, t, T, q, r, pTrue
+                    resultPrice = optFunc.implied_vol_C(S1, K, 0.0, T, repo, r, trueValue)
+                elif type == 'P':
+                    resultPrice = optFunc.implied_vol_P(S1, K, 0.0, T, repo, r, trueValue)
+                else:
+                    resultPrice = 0.0
+                # Q2
+            elif selection == 'Q3':
+                n = int(self.param61.get())
+                #S, K, r, T, sigma, N, type
+                resultPrice =  optFunc.bino_tree(S1, K, r, T, sigma1, n, type)
+                # Q3
+            elif selection == 'Q4':
+                n = int(self.param61.get())
+                #S, sigma, r, t, K, n, type
+                resultPrice = optFunc.geo_asian_option(S1, sigma1, r, T, K, n, type)
+                # Q4
+            elif selection == 'Q5':
+                n = int(self.param61.get())
+                path = int(self.param71.get())
+                cv = self.cvType.get()
+                #S, sigma, r, T, K, step, type, path, cv
+                resultPrice = optFunc.arith_asian_option(S1, sigma1, r, T, K, n, type, path, cv)
+                # Q5
+            elif selection == 'Q6':
+                S2 = float(self.param12.get())
+                sigma2 = float(self.param22.get())
+                corr = float(self.param51.get())
+                #S1, S2, sigma1, sigma2, r, T, K ,corr, type
+                resultPrice = optFunc.geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
+                # Q6
+            elif selection == 'Q7':
+                S2 = float(self.param12.get())
+                sigma2 = float(self.param22.get())
+                corr = float(self.param51.get())
+                path = int(self.param71.get())
+                cv = self.cvType.get()
+                #S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv
+                resultPrice = optFunc.arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv)
+                # Q7
+            #-------------------------------
+            # show result in result box
+            self.resultContent['text'] = "%.5f" % resultPrice
+        except:
+            tkMessageBox.showinfo("Please check your parameters", "Please check and input all parameters")
 
     # stock, strike, time, maturity, volatility, repo, rfr
     # S1, K, 0.0, T, sigma1, repo, r
@@ -260,7 +264,6 @@ class Application1(Frame):
             self.param81.grid_forget()
             self.param82lbl.grid_forget()
             self.param82.grid_forget()
-            print "TO DO-----qusetion", selection
             # Q4
         elif selection=='Q5':
             self.showAllWidgets()
@@ -282,7 +285,6 @@ class Application1(Frame):
             self.param81.grid_forget()
             self.param82lbl.grid_forget()
             self.param82.grid_forget()
-            print "TO DO-----qusetion", selection
             # Q5
         elif selection=='Q6':
             self.showAllWidgets()
@@ -373,11 +375,12 @@ class Application1(Frame):
         self.param82.grid(column=3, row=8, columnspan=1)
 
     def __init__(self, master):
-        root.minsize(width = 960, height = 400)
-        root.maxsize(width = 1440, height = 600)
-        Frame.__init__(self, master)
-        self.pack()
-        self.createWidgets()
+
+            root.minsize(width = 960, height = 400)
+            root.maxsize(width = 1440, height = 600)
+            Frame.__init__(self, master)
+            self.pack()
+            self.createWidgets()
 
 
 
