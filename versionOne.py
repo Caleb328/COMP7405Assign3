@@ -1,7 +1,9 @@
 import math
 import numpy as np
 from scipy.stats import norm
-# from numbapro import vectorize
+from numbapro import vectorize
+from timeit import default_timer as timer  # for timing
+
 
 #d1 calculator with repo
 def dOne(stock, strike, time, maturity, volatility, repo, rfr):
@@ -111,7 +113,6 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
     B = math.sqrt(S1*S2)
     d1 = d_one(B, K, T, sigma, mu)
     d2 = d_two(B, K, T, sigma, mu)
-    # print "%.5f %.5f %.5f %.5f %.5f" % (B, sigma, mu, d1, d2)
     if type == 'C':
         return math.exp(-r*T)*(B*math.exp(mu*T)*norm.cdf(d1)-K*norm.cdf(d2))
     elif type == 'P':
@@ -124,31 +125,27 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 #Input: S sigma r T K n type path cv
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_asian)
-# @vectorize(['f8(f8, f8, f8, f8, f8)'], target='gpu')
+@vectorize(['f8(f8, f8, f8, f8, f8)'], target='gpu')
 def browianMotion(S, dt, c1, c2, random):
-    return S * np.exp(c1 * dt + c2 * random)
+    return S * math.exp(c1 * dt + c2 * random)
 
 
 def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
     np.random.seed(0)
-    paths = np.zeros((path, step), order='F', dtype=np.float64)
-    random = np.zeros((path, step), order='F', dtype=np.float64)
+    paths = np.zeros((path, step), order='F')
+    random = np.zeros((path, step), order='F')
     for i in range(0, path):
         random[i, :] = np.random.standard_normal(step)
-    c1 = r - 0.5 * sigma ** 2
+    c1 = r - 0.5 * sigma * sigma
     dt = float(T) / step
     c2 = sigma * np.sqrt(dt)
 
     #initialize first step result
-    # random = np.random.standard_normal(path)
-    # paths[:, 0] = browianMotion(S, dt, c1, c2, random)
     paths[:, 0] = browianMotion(S, dt, c1, c2, random[:, 0])
 
     #simulate the remaining steps in monte carlo
     for i in range(1, step):
         s = paths[:, i - 1]
-        # random = np.random.standard_normal(path)
-        # paths[:, i] = browianMotion(s, dt, c1, c2, random)
         paths[:, i] = browianMotion(s, dt, c1, c2, random[:, i])
 
     arithMean = paths.mean(1)
@@ -166,19 +163,16 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
 
     #Standard Monte Carlo
     if cv == 'NULL':
-        # print "NULL"
-        return np.mean(arith_payoff, dtype=np.float64)
+        return np.mean(arith_payoff)
 
     #Control variates
     else:
-        # print "CV"
         XY = arith_payoff*geo_payoff
         covXY = np.mean(XY) - (np.mean(geo_payoff) * np.mean(arith_payoff))
         theta = covXY/np.var(geo_payoff)
         geo = geo_asian_option(S, sigma,r, T, K, step, type)
-        # print np.mean(geo - geo_payoff)
         z = arith_payoff + theta*(geo - geo_payoff)
-        return np.mean(z, dtype=np.float64)
+        return np.mean(z)
 
 
 #arithmetric basket
@@ -217,11 +211,7 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
         covXY = np.mean(XY) - np.mean(arith_payoff)*np.mean(geo_payoff)
         theta = covXY/np.var(geo_payoff)
 
-        # Z = [0.0]*path
         geo = geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
-        # print "Geo: %.5f: Geo_sample: %.5f" % (geo, np.mean(geo_payoff))
-        # for i in range(0, path):
-        #     Z[i] = arith_payoff[i]+theta*(geo-geo_payoff[i])
         Z = arith_payoff + theta * (geo - geo_payoff)
         z_mean = np.mean(Z)
         z_std = np.std(Z)
@@ -255,3 +245,10 @@ def bino_tree(S, K, r, T, sigma, N, type):
                 pay_off[i] = max(-stock_price+K, DF*(p*pay_off[i]+(1-p)*pay_off[i+1]))
                 stock[i] = stock_price
         return pay_off[0]
+
+if __name__ == '__main__':
+    ts = timer()
+    arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 1000000, 'CV')
+    te = timer()
+    elapsed = te - ts
+    print elapsed
