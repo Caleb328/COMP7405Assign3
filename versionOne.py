@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy.stats import norm
+# from numbapro import vectorize
 
 #d1 calculator with repo
 def dOne(stock, strike, time, maturity, volatility, repo, rfr):
@@ -123,6 +124,7 @@ def geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type):
 #Input: S sigma r T K n type path cv
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_asian)
+# @vectorize(['f8(f8, f8, f8, f8, f8)'], target='gpu')
 def browianMotion(S, dt, c1, c2, random):
     return S * np.exp(c1 * dt + c2 * random)
 
@@ -253,15 +255,3 @@ def bino_tree(S, K, r, T, sigma, N, type):
                 pay_off[i] = max(-stock_price+K, DF*(p*pay_off[i]+(1-p)*pay_off[i+1]))
                 stock[i] = stock_price
         return pay_off[0]
-
-if __name__ == '__main__':
-    #S, sigma, r, t, K, n, type
-    # print geo_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'C')
-    #S1, S2, sigma1, sigma2, r, T, K ,corr, type
-    # print geo_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C')
-    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 100000, 'NULL')
-    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'C', 100000, 'CV')
-    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'P', 100000, 'NULL')
-    # print arith_basket(100, 100, 0.3, 0.3, 0.05, 3.0, 100, 0.5, 'P', 100000, 'CV')
-    print arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 2000000, 'NULL')
-    print arith_asian_option(100, 0.3, 0.05, 3.0, 100, 50, 'P', 2000000, 'CV')
