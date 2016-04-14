@@ -163,7 +163,7 @@ class Application1(Frame):
             sigma2 = float(self.param22.get())
             corr = float(self.param51.get())
             #S1, S2, sigma1, sigma2, r, T, K ,corr, type
-            return optFunc.geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
+            resultPrice = optFunc.geo_basket(S1, S2, sigma1, sigma2, r, T, K ,corr, type)
             # Q6
         elif selection == 'Q7':
             S2 = float(self.param12.get())
@@ -172,7 +172,7 @@ class Application1(Frame):
             path = int(self.param71.get())
             cv = self.cvType.get()
             #S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv
-            return optFunc.arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv)
+            resultPrice = optFunc.arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv)
             # Q7
         #-------------------------------
         # show result in result box

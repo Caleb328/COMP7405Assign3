@@ -164,10 +164,12 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
 
     #Standard Monte Carlo
     if cv == 'NULL':
+        # print "NULL"
         return np.mean(arith_payoff)
 
     #Control variates
     else:
+        # print "CV"
         XY = arith_payoff*geo_payoff
         covXY = np.mean(XY) - (np.mean(geo_payoff) * np.mean(arith_payoff))
         theta = covXY/np.var(geo_payoff)
@@ -182,7 +184,8 @@ def arith_asian_option(S, sigma, r, T, K, step, type, path, cv):
 #path: number paths for Monte Carlo simulation
 #cv: type of control variate (null or geo_basket)
 def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
-    # np.random.seed(0)
+    print "arith basket"
+    np.random.seed(0)
     z1 = np.random.normal(loc=0, scale=1, size=path)
     z = np.random.normal(loc=0, scale=1, size=path)
     z2 = corr*z1+math.sqrt(1-corr**2)*z
@@ -201,7 +204,7 @@ def arith_basket(S1, S2, sigma1, sigma2, r, T, K, corr, type, path, cv):
         geo_payoff[i] = max(geo_payoff[i], 0)
 
     #Standard Monte Carlo
-    if cv == 'null':
+    if cv == 'NULL':
         p_mean = np.mean(arith_payoff)
         p_std = np.std(arith_payoff)
         return p_mean
